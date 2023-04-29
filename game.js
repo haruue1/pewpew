@@ -17,6 +17,7 @@ const keys = {
     a: false,
     s: false,
     d: false,
+    p: false, // p for pog
 }
 
 class Entity {
@@ -172,6 +173,10 @@ function clear_screen() {
     c.clearRect(0, 0, canvas.width, canvas.height)
 }
 
+function show_easter_egg() {
+    alert("YOU FOUND THE EGGS")
+}
+
 function game_loop(timestamp) {
     clear_screen()
     let delta = timestamp - last_timestamp
@@ -192,6 +197,11 @@ function game_loop(timestamp) {
         player.direction.y = 0
     }
     
+    if (keys.p) {
+        show_easter_egg()
+        keys.p = false
+    }
+
     if (isShooting) {
         if (timestamp > last_fire) {
             fireProjectile()
