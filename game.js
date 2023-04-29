@@ -20,6 +20,8 @@ const keys = {
     p: false, // p for pog
 }
 
+const clamp = (num, min, max) => Math.min(Math.max(num, min), max)
+
 class Entity {
     constructor(position, direction, radius, color) {
         this.position = position
@@ -37,6 +39,13 @@ class Entity {
 
         this.position.x += this.velocity.x / 2
         this.position.y += this.velocity.y / 2
+
+        let min = 0 + this.radius
+        let max_width = canvas.width - this.radius
+        let max_height = canvas.height - this.radius
+
+        this.position.x = clamp(this.position.x, min, max_width)
+        this.position.y = clamp(this.position.y, min, max_height)
     }
 
     draw() {
@@ -49,12 +58,13 @@ class Entity {
 }
 
 class Ghost {
-    constructor(position, direction, health = 100) {
+    constructor(position, health = 100, reward = 100, image_source) {
         this.image = new Image()
         this.position = position
-        this.direction = direction
         this.velocity = {x: 0, y: 0}
         this.health = health
+        this.image_source = image_source
+        this.reward = reward
     }
 
     update(delta) {
@@ -69,7 +79,7 @@ class Ghost {
     }
 
     draw() {
-        this.image.src = "assets/ghost.png"
+        this.image.src = this.image_source 
         let x = this.position.x - this.image.width / 2;
         let y = this.position.y - this.image.height / 2;
         c.drawImage(this.image, x, y)
@@ -122,8 +132,16 @@ const player = new Entity(
 function spawnGhost() {
     let x = Math.random() * canvas.width
     let y = 100
+    let normal_ghost = "assets/ghost.png"
+    let red_ghost = "assets/ghost_red.png"
 
-    ghosts.push(new Ghost({x: x, y: y}, {x: 0, y: 0}, 50))
+    let red_chance = Math.random() * 100
+
+    if (red_chance > 90) {
+        ghosts.push(new Ghost({x: x, y: y}, 200, 600, red_ghost))
+    } else {
+        ghosts.push(new Ghost({x: x, y: y}, 50, 100, normal_ghost))
+    }
 }
 
 
@@ -233,8 +251,8 @@ function game_loop(timestamp) {
                 }
                 
                 if (ghost.health <= 0) {
+                    update_score(ghost.reward)
                     ghosts.splice(ghostIndex, 1)
-                    update_score(100)
                 }
             })
         } else {
