@@ -1,3 +1,9 @@
+import {
+    Player,
+    Ghost,
+    Projectile,
+} from "./src/Classes.js"
+
 const canvas = document.querySelector("#game-layer")
 const deadboi = document.querySelector(".boi-is-dead")
 
@@ -8,7 +14,6 @@ canvas.width = innerWidth
 canvas.height = innerHeight
 let projectiles = []
 let ghosts = []
-let isShooting = false
 let mouse = {x: 0, y: 0}
 let score = 0
 
@@ -20,96 +25,9 @@ const keys = {
     p: false, // p for pog
 }
 
-const clamp = (num, min, max) => Math.min(Math.max(num, min), max)
-
-class Entity {
-    constructor(position, direction, radius, color) {
-        this.position = position
-        this.direction = direction
-        this.velocity = {x: 0, y: 0}
-        this.radius = radius
-        this.color = color
-        this.speed = 1 
-        this.dead = false
-    }
-
-    update(delta) {
-        this.velocity.y = this.direction.y * delta
-        this.velocity.x = this.direction.x * delta
-
-        this.position.x += this.velocity.x / 2
-        this.position.y += this.velocity.y / 2
-
-        let min = 0 + this.radius
-        let max_width = canvas.width - this.radius
-        let max_height = canvas.height - this.radius
-
-        this.position.x = clamp(this.position.x, min, max_width)
-        this.position.y = clamp(this.position.y, min, max_height)
-    }
-
-    draw() {
-        c.beginPath()
-        c.arc(this.position.x, this.position.y, this.radius, 0, Math.PI*2, false)
-        c.fillStyle = this.color
-        c.fill()
-        c.closePath()
-    }
-}
-
-class Ghost {
-    constructor(position, health = 100, reward = 100, image_source) {
-        this.image = new Image()
-        this.position = position
-        this.velocity = {x: 0, y: 0}
-        this.health = health
-        this.image_source = image_source
-        this.reward = reward
-    }
-
-    update(delta) {
-        let dx = player.position.x - this.position.x
-        let dy = player.position.y - this.position.y
-        let angle = Math.atan2(dy, dx)
-        this.velocity.x = Math.cos(angle)
-        this.velocity.y = Math.sin(angle)
-
-        this.position.x += this.velocity.x 
-        this.position.y += this.velocity.y 
-    }
-
-    draw() {
-        this.image.src = this.image_source 
-        let x = this.position.x - this.image.width / 2;
-        let y = this.position.y - this.image.height / 2;
-        c.drawImage(this.image, x, y)
-    }
-}
-
-class Projectile extends Entity {
-    static fireRate = 50 
-    constructor(position, direction, radius, color, projectileSpeed = 1, projectileDamage = 5) {
-        super(position, direction, radius, color)
-        this.projectileSpeed = projectileSpeed
-        this.projectileDamage = projectileDamage
-    }
-
-    fire() {
-        let dx = this.direction.x - this.position.x
-        let dy = this.direction.y - this.position.y
-        let angle = Math.atan2(dy, dx)
-        this.velocity.x = Math.cos(angle) * this.projectileSpeed
-        this.velocity.y = Math.sin(angle) * this.projectileSpeed
-    }
-
-    update(delta) {
-        this.position.x += this.velocity.x * delta
-        this.position.y += this.velocity.y * delta
-    }
-}
 
 function fireProjectile() {
-    let newProjectile = new Projectile({x: player.position.x, y: player.position.y}, {x: mouse.x, y: mouse.y}, 5, "#ff0000")
+    let newProjectile = new Projectile(c, {x: player.position.x, y: player.position.y}, {x: mouse.x, y: mouse.y}, 5, "#ff0000")
     newProjectile.fire()
     projectiles.push(newProjectile)
 }
@@ -122,7 +40,8 @@ function checkCollision(entity1, entity2) {
     return false
 }
 
-const player = new Entity(
+const player = new Player(
+    c,
     {x: canvas.width/2, y: canvas.height/2},
     {x: 0, y: 0},
     10,
@@ -132,15 +51,15 @@ const player = new Entity(
 function spawnGhost() {
     let x = Math.random() * canvas.width
     let y = 100
-    let normal_ghost = "assets/ghost.png"
-    let red_ghost = "assets/ghost_red.png"
+    const normal_ghost = "../assets/ghost.png"
+    const red_ghost = "../assets/ghost_red.png"
 
     let red_chance = Math.random() * 100
 
     if (red_chance > 90) {
-        ghosts.push(new Ghost({x: x, y: y}, 200, 600, red_ghost))
+        ghosts.push(new Ghost(c, {x: x, y: y}, player.position, 200, 600, red_ghost))
     } else {
-        ghosts.push(new Ghost({x: x, y: y}, 50, 100, normal_ghost))
+        ghosts.push(new Ghost(c, {x: x, y: y}, player.position, 50, 100, normal_ghost))
     }
 }
 
@@ -154,11 +73,11 @@ addEventListener("keyup", e => {
 })
 
 addEventListener("mousedown", e => {
-    isShooting = true
+    player.isShooting = true
 })
 
 addEventListener("mouseup", e => {
-    isShooting = false
+    player.isShooting = false
 })
 
 addEventListener("mousemove", e => {
@@ -193,45 +112,21 @@ function clear_screen() {
 
 function show_easter_egg() {
     alert("YOU FOUND THE EGGS")
+    keys.p = false
 }
 
-function game_loop(timestamp) {
-    clear_screen()
-    let delta = timestamp - last_timestamp
+function handleKeyboardInput() {
+    player.direction.x = keys.a ? -1 : keys.d ? 1 : 0
+    player.direction.y = keys.w ? -1 : keys.s ? 1 : 0
+    if (keys.p) show_easter_egg()
+}
 
-    if (keys.a) {
-        player.direction.x = -1
-    } else if (keys.d) {
-        player.direction.x = 1
-    } else {
-        player.direction.x = 0
-    }
-    
-    if (keys.s) {
-        player.direction.y = 1
-    } else if (keys.w) {
-        player.direction.y = -1
-    } else {
-        player.direction.y = 0
-    }
-    
-    if (keys.p) {
-        show_easter_egg()
-        keys.p = false
-    }
-
-    if (isShooting) {
-        if (timestamp > last_fire) {
-            fireProjectile()
-            last_fire = timestamp + Projectile.fireRate
-        }
-    }
-    
+function updateGameObjects(delta) {
     player.update(delta)
     player.draw()
     
     ghosts.forEach(ghost => {
-        ghost.update(delta)
+        ghost.update()
         ghost.draw()
         if (checkCollision(ghost, player)) {
             player.dead = true
@@ -259,8 +154,22 @@ function game_loop(timestamp) {
             projectiles.splice(index, 1)
         }
     })
+}
 
+function game_loop(timestamp) {
+    clear_screen()
+    let delta = timestamp - last_timestamp
 
+    handleKeyboardInput()
+
+    if (player.isShooting) {
+        if (timestamp > last_fire) {
+            fireProjectile()
+            last_fire = timestamp + Projectile.fireRate
+        }
+    }
+    
+    updateGameObjects(delta)
     
     fps = 1000 / delta
     draw_fps("FPS: " + Math.round(fps))
