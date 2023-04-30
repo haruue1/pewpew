@@ -56,8 +56,8 @@ const player = new Player(
 function spawnGhost() {
     let x = Math.random() * canvas.width
     let y = 100
-    const normal_ghost = "../assets/ghost.png"
-    const red_ghost = "../assets/ghost_red.png"
+    const normal_ghost = "./assets/ghost.png"
+    const red_ghost = "./assets/ghost_red.png"
 
     let red_chance = Math.random() * 100
 
