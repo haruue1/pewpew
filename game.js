@@ -12,6 +12,11 @@ const c = canvas.getContext("2d")
 
 canvas.width = innerWidth
 canvas.height = innerHeight
+const GameState = {
+    Playing: "Playing",
+    GameOver: "GameOver",
+}
+let currentGameState = GameState.Playing
 let projectiles = []
 let ghosts = []
 let mouse = {x: 0, y: 0}
@@ -160,31 +165,36 @@ function game_loop(timestamp) {
     clear_screen()
     let delta = timestamp - last_timestamp
 
-    handleKeyboardInput()
+    switch (currentGameState) {
+        case GameState.Playing:
+                handleKeyboardInput()
 
-    if (player.isShooting) {
-        if (timestamp > last_fire) {
-            fireProjectile()
-            last_fire = timestamp + Projectile.fireRate
-        }
+                if (player.isShooting) {
+                    if (timestamp > last_fire) {
+                        fireProjectile()
+                        last_fire = timestamp + Projectile.fireRate
+                    }
+                }
+                
+                updateGameObjects(delta)
+                
+                fps = 1000 / delta
+                draw_fps("FPS: " + Math.round(fps))
+                draw_score()
+                if (player.dead) {
+                    currentGameState = GameState.GameOver
+                }
+                requestAnimationFrame(game_loop)
+            break
+        case GameState.GameOver:
+                clearInterval(ghostSpawner)
+                clear_screen()
+                canvas.style.display = "none"
+                deadboi.style.display = "block"
+            break
     }
-    
-    updateGameObjects(delta)
-    
-    fps = 1000 / delta
-    draw_fps("FPS: " + Math.round(fps))
-    draw_score()
-    
+
     last_timestamp = timestamp
-
-    if (!player.dead) {
-        requestAnimationFrame(game_loop)
-    } else {
-        clearInterval(ghostSpawner)
-        clear_screen()
-        canvas.style.display = "none"
-        deadboi.style.display = "block"
-    }
 }
 requestAnimationFrame(game_loop)
 const ghostSpawner = setInterval(spawnGhost, 1000)
